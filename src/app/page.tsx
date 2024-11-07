@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import Card from '../../src/app/components/interfaceComponents/card'; // Ajuste o caminho conforme necessário
+import Card from '../../src/app/components/interfaceComponents/card'; 
 
 export default function HomePage() {
   return (
