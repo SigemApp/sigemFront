@@ -1,73 +1,52 @@
 import React, { useState, useEffect } from 'react';
-import Modal from '../interfaceComponents/modal'; 
-import Form from '../interfaceComponents/form'; 
-import { Service } from '../../pages/services/types'; 
-import axios from 'axios';
+import Modal from '../interfaceComponents/modal';
+import Form from '../interfaceComponents/form';
+import { Service } from '../../pages/services/types';
 
-interface Supplier {
-  name: string;
-  code: string;  
-}
-
-interface ServiceFormProps {
+interface ServiceUpdateProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (service: Service) => Promise<void>;
-  initialData: Service | null;
-  mode: 'create' | 'edit';
+  initialData: Service | null;  
+  suppliers: { id: string; name: string }[];  
 }
 
-const ServiceForm: React.FC<ServiceFormProps> = ({
+const ServiceUpdate: React.FC<ServiceUpdateProps> = ({
   isOpen,
   onClose,
   onSave,
   initialData,
-  mode,
+  suppliers = [],
 }) => {
+  const [id, setId] = useState<string>('');
   const [name, setName] = useState('');
-  const [supplierCode, setSupplierCode] = useState('');  
+  const [supplierId, setSupplierId] = useState<string>('');  
   const [description, setDescription] = useState('');
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]); 
 
-  // Carrega os dados do serviço se em modo de edição
   useEffect(() => {
     if (initialData) {
+      setId(initialData.id || '');
       setName(initialData.name);
-      setSupplierCode(initialData.supplierCode || '');  
+      setSupplierId(initialData.supplierName);  
       setDescription(initialData.description || '');
     }
   }, [initialData]);
 
-  
-  useEffect(() => {
-    const fetchSuppliers = async () => {
-      try {
-        const response = await axios.get('http://localhost:3000/suppliers');
-        setSuppliers(response.data);  
-      } catch (error) {
-        console.error('Erro ao buscar fornecedores:', error);
-      }
-    };
-
-    fetchSuppliers();
-  }, []);
-
-  // Função que lida com o envio do formulário
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const service: Service = {
+    const updatedService: Service = {
+      id,
       name,
-      supplierCode,  
-      supplierName: supplierCode,  
-      description, 
+      supplierName: supplierId,
+      description,
     };
 
-    await onSave(service);  
-    onClose(); 
+    await onSave(updatedService);  
+    onClose();  
   };
 
-  if (!isOpen) return null;  
+  if (!isOpen) return null;
 
   return (
     <Modal 
@@ -77,10 +56,20 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
       height="auto"
     >
       <div className="flex flex-col">
-        <h2 className="text-xl font-bold mb-3">{mode === 'create' ? 'Adicionar Serviço' : 'Editar Serviço'}</h2>
+        <h2 className="text-xl font-bold mb-3">Editar Serviço</h2>
         <Form onSubmit={handleSubmit}>
           <div className="grid grid-cols-2 gap-4">
             <div>
+              <label>
+                ID do Serviço:
+                <input
+                  type="text"
+                  value={id || ''}
+                  onChange={(e) => setId(e.target.value)}  
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                  disabled
+                />
+              </label>
               <label>
                 Nome do Serviço:
                 <input
@@ -91,17 +80,15 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
                 />
               </label>
               <label>
-                Nome do Fornecedor:
+                Empresa Prestadora:
                 <select
-                  value={supplierCode}  
-                  onChange={(e) => setSupplierCode(e.target.value)}  
+                  value={supplierId}
+                  onChange={(e) => setSupplierId(e.target.value)}  
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
                 >
-                  <option value="">Selecione um fornecedor</option>
-                  {suppliers.map((supplier) => (
-                    <option key={supplier.code} value={supplier.code}>
-                      {supplier.name}  
-                    </option>
+                  <option value="" disabled>Selecione a empresa</option>
+                  {suppliers.map(supplier => (
+                    <option key={supplier.id} value={supplier.id}>{supplier.name}</option>  
                   ))}
                 </select>
               </label>
@@ -127,4 +114,4 @@ const ServiceForm: React.FC<ServiceFormProps> = ({
   );
 };
 
-export default ServiceForm;
+export default ServiceUpdate;
