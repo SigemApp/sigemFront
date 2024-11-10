@@ -1,10 +1,10 @@
 import React from 'react';
-import { SupplierItem } from '../../pages/suppliers/types';
+import { PartSupplier, ServiceSupplier } from '../../pages/suppliers/types';
 
 interface SupplierListProps {
-  suppliers: SupplierItem[];
-  onEdit: (id: number) => void;
-  onView: (supplier: SupplierItem) => void;
+  suppliers: (PartSupplier | ServiceSupplier)[];
+  onEdit: (id: string) => void; 
+  onView: (supplier: PartSupplier | ServiceSupplier) => void;
 }
 
 const SupplierList: React.FC<SupplierListProps> = ({ suppliers, onEdit, onView }) => {
@@ -16,7 +16,7 @@ const SupplierList: React.FC<SupplierListProps> = ({ suppliers, onEdit, onView }
           <p>Código: {supplier.code}</p>
           <p>Tipo: {supplier.type === 'part' ? 'Peça' : 'Serviço'}</p>
           <button onClick={() => onEdit(supplier.id)} className="px-4 py-2 bg-yellow-500 text-white rounded-md">Editar</button>
-          <button onClick={() => onView(supplier)} className="px-4 py-2 bg-blue-500 text-white rounded-md ml-2">Visualizar</button>
+          <button onClick={() => onView(supplier)} className="px-4 py-2 bg-blue-500 text-white rounded-md ml-4">Visualizar</button>
         </div>
       ))}
     </div>
