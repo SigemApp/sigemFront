@@ -1,5 +1,5 @@
 export interface Maintenance {
-  id: number;
+  id: string;
   orderNumber: string;
   openingDate: string;
   completionDeadline: string;

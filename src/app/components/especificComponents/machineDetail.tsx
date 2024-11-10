@@ -5,19 +5,6 @@ import Modal from '../interfaceComponents/modal';
 import Table from '../../components/interfaceComponents/table'; 
 
 interface MaintenanceHistory {
-  id: number; 
-  orderNumber: string;
-  openingDate: string;
-  completionDeadline: string;
-  date: string;
-  description: string;
-  partsUsed?: string[];
-  materialsUsed?: string[];
-  responsibleTeam: string; 
-  status: string; 
-}
-
-interface Maintenance {
   id: string;
   orderNumber: string;
   openingDate: string;
@@ -26,6 +13,8 @@ interface Maintenance {
   description: string;
   partsUsed?: string[];
   materialsUsed?: string[];
+  responsibleTeam: string;
+  status: string;
 }
 
 interface MachineDetailProps {
@@ -36,9 +25,7 @@ interface MachineDetailProps {
     manufacturingDate: string;
     serialNumber: string;
     location: string;
-    imageUrl: string;
     maintenanceHistory: MaintenanceHistory[];
-    partsInfo: React.ReactNode; 
   };
   onClose: () => void;
 }
@@ -54,7 +41,6 @@ const MachineDetail: React.FC<MachineDetailProps> = ({ machine, onClose }) => {
     setSelectedMaintenance(null);
   };
 
-  // Incluindo a coluna para "Equipe Responsável"
   const columns = ["Data", "Descrição", "Peças Usadas", "Materiais Usados", "Equipe Responsável", "Ação"];
 
   return (
@@ -65,7 +51,7 @@ const MachineDetail: React.FC<MachineDetailProps> = ({ machine, onClose }) => {
       <p>Data de Fabricação: {machine.manufacturingDate}</p>
       <p>Número de Série: {machine.serialNumber}</p>
       <p>Localização: {machine.location}</p>
-      <img src={machine.imageUrl} alt={machine.name} className="w-32 h-32 object-cover" />
+      
       <h3 className="text-lg font-semibold">Histórico de Manutenção</h3>
       
       <Table
@@ -77,7 +63,7 @@ const MachineDetail: React.FC<MachineDetailProps> = ({ machine, onClose }) => {
             <td className="px-4 py-2">{entry.description}</td>
             <td className="px-4 py-2">{entry.partsUsed?.join(', ') || 'N/A'}</td>
             <td className="px-4 py-2">{entry.materialsUsed?.join(', ') || 'N/A'}</td>
-            <td className="px-4 py-2">{entry.responsibleTeam}</td> {/* Adicionando a equipe responsável */}
+            <td className="px-4 py-2">{entry.responsibleTeam}</td>
             <td className="px-4 py-2">
               <Button label="Ver Detalhes" onClick={() => handleOpenMaintenance(entry)} />
             </td>
@@ -85,7 +71,6 @@ const MachineDetail: React.FC<MachineDetailProps> = ({ machine, onClose }) => {
         )}
       />
 
-      <div>{machine.partsInfo}</div> 
       <button onClick={onClose} className="px-4 py-2 bg-gray-500 text-white rounded-md">Fechar</button>
 
       {selectedMaintenance && (
