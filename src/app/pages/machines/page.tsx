@@ -1,15 +1,15 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import Table from '../../components/interfaceComponents/table';
 import SearchBar from '../../components/interfaceComponents/searchBar';
 import Modal from '../../components/interfaceComponents/modal';
 import MachineForm from '../../components/especificComponents/machineForm';
 import Button from '../../components/interfaceComponents/button';
 import Notification from '../../components/interfaceComponents/customNotification';
-import MachineDetail from '../../components/especificComponents/machineDetail'; 
+import MachineDetail from '../../components/especificComponents/machineDetail';
 import { Machine } from './types';
-import { mockMachines } from './mockData';  
 
 const MachinesPage: React.FC = () => {
   const [machines, setMachines] = useState<Machine[]>([]);
@@ -19,67 +19,92 @@ const MachinesPage: React.FC = () => {
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
   const [selectedMachine, setSelectedMachine] = useState<Machine | null>(null);
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
-  const [isDetailOpen, setDetailOpen] = useState(false); // Novo estado para controlar o modal de detalhes
+  const [isDetailOpen, setDetailOpen] = useState(false);
 
   useEffect(() => {
-    setMachines(mockMachines);
-    setFilteredMachines(mockMachines);
+    handleSearch();
   }, []);
 
-  const handleSearch = () => {
-    setFilteredMachines(machines.filter(machine => 
-      machine.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      machine.type.toLowerCase().includes(searchTerm.toLowerCase())
-    ));
+  const handleSearch = async () => {
+    try {
+      const response = await axios.get('http://localhost:3000/machines', {
+        params: { searchTerm }
+      });
+      setMachines(response.data);
+      setFilteredMachines(response.data);
+    } catch (error) {
+      console.error('Erro ao buscar máquinas:', error);
+    }
   };
 
   const handleSave = async (machine: Omit<Machine, 'id' | 'maintenanceHistory'> & { image: File | null }) => {
     try {
+      const machineData = {
+        name: machine.name,
+        type: machine.type,
+        machineModel: machine.machineModel,
+        manufacturingDate: machine.manufacturingDate,
+        serialNumber: machine.serialNumber,
+        location: machine.location,
+        image: machine.image ? machine.image : null,
+      };
+
       if (formMode === 'create') {
-        const newMachine = {
-          ...machine,
-          id: machines.length + 1, // Mock new ID
-          maintenanceHistory: []
-        };
-        setMachines([...machines, newMachine]);
+        const response = await axios.post('http://localhost:3000/machines', machineData, {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        setMachines([...machines, response.data]);  
         setNotification({ message: 'Máquina adicionada com sucesso!', type: 'success' });
       } else if (selectedMachine) {
-        const updatedMachine = {
-          ...machine,
-          id: selectedMachine.id,
-          maintenanceHistory: selectedMachine.maintenanceHistory
-        };
-        setMachines(machines.map(m => m.id === selectedMachine.id ? updatedMachine : m));
+        const updatedMachine = { ...machineData, id: selectedMachine.id, maintenanceHistory: selectedMachine.maintenanceHistory };
+        await axios.put(`http://localhost:3000/machines/${selectedMachine.id}`, updatedMachine, {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        setMachines(machines.map(m => m.id === selectedMachine.id ? updatedMachine : m));  
         setNotification({ message: 'Máquina atualizada com sucesso!', type: 'success' });
       }
+
       setFormOpen(false);
       setSelectedMachine(null);
+      handleSearch(); 
+
     } catch (error) {
-      console.error('Error saving machine:', error);
+      console.error('Erro ao salvar máquina:', error);
       setNotification({ message: 'Erro ao salvar máquina!', type: 'error' });
     }
   };
 
-  const handleDelete = async (id: number) => {
+const handleDelete = async (id: string) => {
+  try {
+    await axios.delete(`http://localhost:3000/machines/${id}`);
+    setMachines(machines.filter(machine => machine.id !== id)); 
+    setNotification({ message: 'Máquina excluída com sucesso!', type: 'success' });
+    handleSearch();  
+
+  } catch (error) {
+    console.error('Erro ao excluir máquina:', error);
+    setNotification({ message: 'Erro ao excluir máquina!', type: 'error' });
+  }
+};
+
+  const handleDetail = async (machine: Machine) => {
     try {
-      setMachines(machines.filter(machine => machine.id !== id));
-      setNotification({ message: 'Máquina excluída com sucesso!', type: 'success' });
+      const response = await axios.get(`http://localhost:3000/machines/${machine.id}`);
+      setSelectedMachine(response.data);
+      setDetailOpen(true);
     } catch (error) {
-      console.error('Error deleting machine:', error);
-      setNotification({ message: 'Erro ao excluir máquina!', type: 'error' });
+      console.error('Erro ao buscar detalhes da máquina:', error);
     }
   };
 
-  const handleEdit = (machine: Machine) => {
-    setSelectedMachine(machine);
-    setFormMode('edit');
-    setFormOpen(true);
-  };
-
-  const handleCreate = () => {
-    setSelectedMachine(null);
-    setFormMode('create');
-    setFormOpen(true);
+  const handleUpdate = (machine: Machine) => {
+    setSelectedMachine(machine); 
+    setFormMode('edit'); 
+    setFormOpen(true); 
   };
 
   const handleCloseModal = () => {
@@ -91,11 +116,6 @@ const MachinesPage: React.FC = () => {
     setNotification(null);
   };
 
-  const handleDetail = (machine: Machine) => {
-    setSelectedMachine(machine);
-    setDetailOpen(true);
-  };
-
   const handleCloseDetailModal = () => {
     setDetailOpen(false);
     setSelectedMachine(null);
@@ -104,8 +124,8 @@ const MachinesPage: React.FC = () => {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-4">
-        <Button label="Adicionar Máquina" onClick={handleCreate} />
-        <SearchBar 
+        <Button label="Adicionar Máquina" onClick={() => setFormOpen(true)} />
+        <SearchBar
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           onSubmit={handleSearch}
@@ -113,16 +133,16 @@ const MachinesPage: React.FC = () => {
         />
       </div>
 
-      <Table 
+      <Table
         columns={['Nome', 'Tipo', 'Modelo', 'Ações']}
         data={filteredMachines}
         renderRow={(machine) => (
           <>
             <td className="p-2">{machine.name}</td>
             <td className="p-2">{machine.type}</td>
-            <td className="p-2">{machine.model}</td>
+            <td className="p-2">{machine.machineModel}</td>
             <td className="p-2">
-              <Button className='mr-4' label="Editar" onClick={() => handleEdit(machine)} />
+              <Button className='mr-4' label="Editar" onClick={() => handleUpdate(machine)} /> 
               <Button className='mr-4' label="Deletar" onClick={() => handleDelete(machine.id)} />
               <Button label='Detalhar' onClick={() => handleDetail(machine)} />
             </td>
@@ -146,24 +166,32 @@ const MachinesPage: React.FC = () => {
           initialData={selectedMachine ? {
             name: selectedMachine.name,
             type: selectedMachine.type,
-            model: selectedMachine.model,
+            machineModel: selectedMachine.machineModel, 
             manufacturingDate: selectedMachine.manufacturingDate,
             serialNumber: selectedMachine.serialNumber,
             location: selectedMachine.location,
-            image: null, 
+            image: null,
           } : null}
           mode={formMode}
         />
       </Modal>
 
       {selectedMachine && (
-        <Modal isOpen={isDetailOpen} onClose={handleCloseDetailModal}>
-          <MachineDetail
-            machine={selectedMachine}
-            onClose={handleCloseDetailModal}
-          />
-        </Modal>
-      )}
+      <Modal isOpen={isDetailOpen} onClose={handleCloseDetailModal}>
+        <MachineDetail
+          machine={{
+            name: selectedMachine.name,
+            type: selectedMachine.type,
+            model: selectedMachine.machineModel,  
+            manufacturingDate: selectedMachine.manufacturingDate,
+            serialNumber: selectedMachine.serialNumber,
+            location: selectedMachine.location,
+            maintenanceHistory: selectedMachine.maintenanceHistory || [],  
+          }}
+          onClose={handleCloseDetailModal}
+        />
+      </Modal>
+    )}
     </div>
   );
 };

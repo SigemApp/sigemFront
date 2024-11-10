@@ -1,18 +1,25 @@
 export interface MaintenanceHistory {
-    date: string;
-    description: string;
-    partsUsed?: string[];
-    materialsUsed?: string[];
-  }
-  
-  export interface Machine {
-    id: number;
-    name: string;
-    type: string;
-    model: string;
-    manufacturingDate: string;
-    serialNumber: string;
-    location: string;
-    maintenanceHistory: MaintenanceHistory[];
-  }
-  
+  id: string;  
+  orderNumber: string;
+  openingDate: string;
+  completionDeadline: string;
+  date: string;
+  description: string;
+  partsUsed?: string[];
+  materialsUsed?: string[];
+  responsibleTeam: string;
+  status: string;
+}
+
+export interface Machine {
+  id: string;
+  name: string;
+  type: string;
+  machineModel: string;
+  serialNumber: string;
+  location: string;
+  manufacturingDate: string;
+  maintenanceHistory?: any[]; 
+  image: File | null; 
+}
+

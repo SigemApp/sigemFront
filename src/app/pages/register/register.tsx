@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom'; 
+import { useNavigate } from 'react-router-dom';
 
 interface RegisterProps {
   onRegister: (token: string) => void;
@@ -10,12 +10,17 @@ const Register: React.FC<RegisterProps> = ({ onRegister }) => {
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [error, setError] = useState<string>('');
-  
+  const [successMessage, setSuccessMessage] = useState<string>('');
+
   const navigate = useNavigate();
 
   const handleRegisterClick = async () => {
+  
+    setError('');
+    setSuccessMessage('');
+
     try {
-      const response = await fetch('https://suaapi.com/register', {
+      const response = await fetch('http://localhost:3000/users', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -28,7 +33,15 @@ const Register: React.FC<RegisterProps> = ({ onRegister }) => {
       }
 
       const data = await response.json();
-      onRegister(data.token); 
+      onRegister(data.token); // Envia o token ao componente pai
+
+      // Exibe a mensagem de sucesso
+      setSuccessMessage('Conta criada com sucesso! Redirecionando para login...');
+      
+      // Redireciona para a página de login após 2 segundos
+      setTimeout(() => {
+        navigate('/'); // Redireciona para a página de login
+      }, 2000);
     } catch (error) {
       setError((error as Error).message);
     }
@@ -123,6 +136,10 @@ const Register: React.FC<RegisterProps> = ({ onRegister }) => {
 
         {error && (
           <p style={{ color: 'red', marginTop: '10px' }}>{error}</p>
+        )}
+
+        {successMessage && (
+          <p style={{ color: 'green', marginTop: '10px' }}>{successMessage}</p>
         )}
 
         <p style={{ marginTop: '20px', fontSize: '14px', color: '#666' }}>
