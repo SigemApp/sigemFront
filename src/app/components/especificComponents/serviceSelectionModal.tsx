@@ -22,10 +22,19 @@ interface ServiceSelectionModalProps {
 const ServiceSelectionModal: React.FC<ServiceSelectionModalProps> = ({ isOpen, onClose, services = [], selectedServices, onSelectService }) => {
   const [searchTerm, setSearchTerm] = useState<string>('');
 
-  // Filtra os serviços com base no termo de busca
   const filteredServices = services.filter(service =>
-    service.name.toLowerCase().includes(searchTerm.toLowerCase())
+    service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (service.description && service.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
+  const handleSelectService = (service: Service) => {
+    const isServiceSelected = selectedServices.some(selectedService => selectedService.id === service.id);
+    if (isServiceSelected) {
+      onSelectService(service);
+    } else {
+      onSelectService(service);
+    }
+  };
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} width="800px" height="auto">
@@ -39,20 +48,21 @@ const ServiceSelectionModal: React.FC<ServiceSelectionModalProps> = ({ isOpen, o
           className="mb-4"
         />
         <Table
-          columns={['Nome', 'Ações']}
+          columns={['Nome', 'Descrição', 'Ações']}
           data={filteredServices}
           renderRow={(service: Service) => (
-            <>
+            <tr key={service.id}>
               <td className="px-4 py-2">{service.name}</td>
+              <td className="px-4 py-2">{service.description || 'Sem descrição'}</td>
               <td className="px-4 py-2 text-right">
                 <button
-                  onClick={() => onSelectService(service)}
+                  onClick={() => handleSelectService(service)}
                   className={`px-4 py-2 rounded-md ${selectedServices.find(selectedService => selectedService.id === service.id) ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'}`}
                 >
                   {selectedServices.find(selectedService => selectedService.id === service.id) ? 'Remover' : 'Adicionar'}
                 </button>
               </td>
-            </>
+            </tr>
           )}
           className="mt-2"
         />

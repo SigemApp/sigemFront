@@ -1,92 +1,115 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import Table from '../../components/interfaceComponents/table';
 import SearchBar from '../../components/interfaceComponents/searchBar';
 import Modal from '../../components/interfaceComponents/modal';
 import ServiceForm from '../../components/especificComponents/serviceForm';
 import Button from '../../components/interfaceComponents/button';
 import Notification from '../../components/interfaceComponents/customNotification';
-import { ServiceSupplier, PartSupplier } from './types';
+import ServiceDetail from '../../components/especificComponents/serviceDetail';
+import { Service } from './types';
 
 const ServicesPage: React.FC = () => {
-  const [services, setServices] = useState<ServiceSupplier[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filteredServices, setFilteredServices] = useState<ServiceSupplier[]>([]);
+  const [filteredServices, setFilteredServices] = useState<Service[]>([]);
   const [isFormOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
-  const [selectedService, setSelectedService] = useState<ServiceSupplier | null>(null);
+  const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [isDetailOpen, setDetailOpen] = useState(false);
+  const [suppliers, setSuppliers] = useState<{ [id: string]: string }>({}); 
 
   useEffect(() => {
-    fetch('/api/services')
-      .then(response => response.json())
-      .then(data => {
-        setServices(data);
-        setFilteredServices(data);
-      })
-      .catch(error => console.error('Error fetching services:', error));
-  }, []);
+    handleSearch();
+  }, [searchTerm]);
 
-  const handleSearch = () => {
-    setFilteredServices(services.filter(service =>
-      service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      service.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      service.type.toLowerCase().includes(searchTerm.toLowerCase())
-    ));
+  useEffect(() => {
+    fetchSuppliers();
+  }, [services]);
+
+  const fetchSuppliers = async () => {
+    try {
+      const response = await axios.get('http://localhost:3000/suppliers');
+      const supplierMap = response.data.reduce((acc: { [id: string]: string }, supplier: any) => {
+        acc[supplier.id] = supplier.name; 
+        return acc;
+      }, {});
+      setSuppliers(supplierMap); 
+    } catch (error) {
+      console.error('Erro ao buscar fornecedores:', error);
+    }
   };
 
-  const handleSave = async (service: Omit<ServiceSupplier, 'id'> & { id?: number }) => {
+  const handleSearch = async () => {
     try {
-      const url = formMode === 'create' ? '/api/services' : `/api/services/${selectedService?.id}`;
-      const method = formMode === 'create' ? 'POST' : 'PUT';
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(service),
+      const response = await axios.get('http://localhost:3000/services', {
+        params: { searchTerm }
       });
-      const result = await response.json();
+      setServices(response.data);
+      setFilteredServices(response.data);
+    } catch (error) {
+      console.error('Erro ao buscar serviços:', error);
+    }
+  };
+
+  const handleSave = async (service: Omit<Service, 'id'>) => {
+    try {
+      const supplierId = "67309514fe565d75f45fd58c"; 
+
+      const serviceData = {
+        name: service.name,
+        supplierName: supplierId, 
+        description: service.description,
+      };
 
       if (formMode === 'create') {
-        setServices([...services, result]);
+        const response = await axios.post('http://localhost:3000/services', serviceData);
+        setServices((prevServices) => [...prevServices, response.data]);
         setNotification({ message: 'Serviço adicionado com sucesso!', type: 'success' });
-      } else {
-        setServices(services.map(s => s.id === result.id ? result : s));
+      } else if (selectedService) {
+        const updatedService = { ...serviceData, id: selectedService.id };
+        await axios.put(`http://localhost:3000/services/${selectedService.id}`, updatedService);
+        setServices((prevServices) => prevServices.map(s => s.id === selectedService.id ? updatedService : s));
         setNotification({ message: 'Serviço atualizado com sucesso!', type: 'success' });
       }
 
       setFormOpen(false);
       setSelectedService(null);
+      handleSearch();
     } catch (error) {
-      console.error('Error saving service:', error);
+      console.error('Erro ao salvar serviço:', error);
       setNotification({ message: 'Erro ao salvar serviço!', type: 'error' });
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     try {
-      await fetch(`/api/services/${id}`, {
-        method: 'DELETE',
-      });
-      setServices(services.filter(service => service.id !== id));
-      setNotification({ message: 'Serviço deletado com sucesso!', type: 'success' });
+      await axios.delete(`http://localhost:3000/services/${id}`);
+      setServices((prevServices) => prevServices.filter(service => service.id !== id));
+      setNotification({ message: 'Serviço excluído com sucesso!', type: 'success' });
+      handleSearch();
     } catch (error) {
-      console.error('Error deleting service:', error);
-      setNotification({ message: 'Erro ao deletar serviço!', type: 'error' });
+      console.error('Erro ao excluir serviço:', error);
+      setNotification({ message: 'Erro ao excluir serviço!', type: 'error' });
     }
   };
 
-  const handleEdit = (service: ServiceSupplier) => {
-    setSelectedService(service);
-    setFormMode('edit');
-    setFormOpen(true);
+  const handleDetail = async (service: Service) => {
+    try {
+      const response = await axios.get(`http://localhost:3000/services/${service.id}`);
+      setSelectedService(response.data);
+      setDetailOpen(true);  
+    } catch (error) {
+      console.error('Erro ao buscar detalhes do serviço:', error);
+    }
   };
 
-  const handleCreate = () => {
-    setSelectedService(null);
-    setFormMode('create');
+  const handleUpdate = (service: Service) => {
+    setSelectedService(service);
+    setFormMode('edit');
     setFormOpen(true);
   };
 
@@ -99,19 +122,16 @@ const ServicesPage: React.FC = () => {
     setNotification(null);
   };
 
-  const getInitialData = (): Omit<ServiceSupplier, 'id'> | null => {
-    if (selectedService) {
-      const { id, ...rest } = selectedService;
-      return rest as Omit<ServiceSupplier, 'id'>;
-    }
-    return null;
+  const handleCloseDetailModal = () => {
+    setDetailOpen(false);
+    setSelectedService(null);
   };
 
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-4">
-        <Button label="Adicionar Serviço" onClick={handleCreate} />
-        <SearchBar 
+        <Button label="Adicionar Serviço" onClick={() => setFormOpen(true)} />
+        <SearchBar
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           onSubmit={handleSearch}
@@ -119,17 +139,18 @@ const ServicesPage: React.FC = () => {
         />
       </div>
 
-      <Table 
-        columns={['Nome', 'Código', 'Descrição', 'Ações']}
+      <Table
+        columns={['Nome', 'Cód. Fornecedor', 'Descrição', 'Ações']}
         data={filteredServices}
         renderRow={(service) => (
           <>
             <td className="p-2">{service.name}</td>
-            <td className="p-2">{service.code}</td>
-            <td className="p-2">{service.serviceDescription}</td>
+            <td className="p-2">{suppliers[service.supplierName] || service.supplierName}</td>
+            <td className="p-2">{service.description}</td>
             <td className="p-2">
-              <Button label="Editar" onClick={() => handleEdit(service)} />
-              <Button label="Deletar" onClick={() => handleDelete(service.id)} />
+              <Button className='mr-4' label="Editar" onClick={() => handleUpdate(service)} />
+              <Button className='mr-4' label="Deletar" onClick={() => handleDelete(service.id)} />
+              <Button label='Detalhar' onClick={() => handleDetail(service)} />
             </td>
           </>
         )}
@@ -148,10 +169,24 @@ const ServicesPage: React.FC = () => {
           isOpen={isFormOpen}
           onClose={handleCloseModal}
           onSave={handleSave}
-          initialData={getInitialData()}
+          initialData={selectedService ? {
+            id: selectedService.id,
+            name: selectedService.name,
+            supplierName: selectedService.supplierName,
+            description: selectedService.description,
+          } : null}
           mode={formMode}
         />
       </Modal>
+
+      {selectedService && (
+        <Modal isOpen={isDetailOpen} onClose={handleCloseDetailModal}>
+          <ServiceDetail
+            service={selectedService}  
+            onClose={handleCloseDetailModal}
+          />
+        </Modal>
+      )}
     </div>
   );
 };

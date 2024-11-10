@@ -1,5 +1,5 @@
 export interface PartSupplier {
-  id: number;
+  id: string;
   name: string;
   code: string;
   type: 'part';
@@ -12,7 +12,7 @@ export interface PartSupplier {
 }
 
 export interface ServiceSupplier {
-  id: number;
+  id: string;
   name: string;
   code: string;
   type: 'service';
@@ -25,5 +25,4 @@ export interface ServiceSupplier {
   notes?: string;
 }
 
-export type SupplierItem = PartSupplier | ServiceSupplier;
 

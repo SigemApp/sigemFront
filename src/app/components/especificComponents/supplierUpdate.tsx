@@ -11,7 +11,7 @@ interface SupplierFormProps {
   mode: 'create' | 'edit';
 }
 
-const SupplierForm: React.FC<SupplierFormProps> = ({
+const SupplierUpdateForm: React.FC<SupplierFormProps> = ({
   isOpen,
   onClose,
   onSave,
@@ -50,7 +50,7 @@ const SupplierForm: React.FC<SupplierFormProps> = ({
     e.preventDefault();
 
     if (type === 'service' && !serviceDescription) {
-      return; // or show an error message
+      return; 
     }
 
     const supplier: PartSupplier | ServiceSupplier = type === 'service'
@@ -205,4 +205,4 @@ const SupplierForm: React.FC<SupplierFormProps> = ({
   );
 };
 
-export default SupplierForm;
+export default SupplierUpdateForm;
