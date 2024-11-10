@@ -6,19 +6,19 @@ interface LoginProps {
 }
 
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
-  const [username, setUsername] = useState<string>('');
+  const [email, setEmail] = useState<string>('');  // Troquei para email
   const [password, setPassword] = useState<string>('');
   const [error, setError] = useState<string>('');
   const navigate = useNavigate(); 
 
   const handleLoginClick = async () => {
     try {
-      const response = await fetch('https://suaapi.com/login', {
+      const response = await fetch('http://localhost:3000/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ email, password }),  // Agora estamos enviando email
       });
 
       if (!response.ok) {
@@ -64,10 +64,10 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         </p>
 
         <input
-          type="text"
-          placeholder="Nome de Usuário"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
+          type="email"  // Alterado para type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}  // Alterado para email
           style={{
             width: '100%',
             padding: '10px',

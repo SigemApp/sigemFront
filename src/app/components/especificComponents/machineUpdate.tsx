@@ -1,3 +1,4 @@
+// MachineUpdate.tsx (Formulário de Edição)
 import React, { useState, useEffect } from 'react';
 import Modal from '../interfaceComponents/modal';
 import Form from '../interfaceComponents/form';
@@ -5,40 +6,26 @@ import DatePicker from '../interfaceComponents/datePicker';
 import FileUpload from '../interfaceComponents/fileUpload';
 import { Machine } from '../../pages/machines/types';
 
-interface MachineFormProps {
+interface MachineUpdateProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (machine: Omit<Machine, 'id' | 'maintenanceHistory'> & { image: File | null }) => Promise<void>;
-  initialData: Omit<Machine, 'id' | 'maintenanceHistory'> & { image: File | null } | null;
-  mode: 'create' | 'edit';
+  initialData: Machine;
 }
 
-const MachineForm: React.FC<MachineFormProps> = ({
+const MachineUpdate: React.FC<MachineUpdateProps> = ({
   isOpen,
   onClose,
   onSave,
   initialData,
-  mode,
 }) => {
-  const [name, setName] = useState('');
-  const [type, setType] = useState('');
-  const [machineModel, setMachineModel] = useState('');
-  const [serialNumber, setSerialNumber] = useState('');
-  const [location, setLocation] = useState('');
-  const [manufacturingDate, setManufacturingDate] = useState('');
+  const [name, setName] = useState(initialData.name);
+  const [type, setType] = useState(initialData.type);
+  const [machineModel, setMachineModel] = useState(initialData.machineModel);
+  const [serialNumber, setSerialNumber] = useState(initialData.serialNumber);
+  const [location, setLocation] = useState(initialData.location);
+  const [manufacturingDate, setManufacturingDate] = useState(initialData.manufacturingDate);
   const [image, setImage] = useState<File | null>(null);
-
-  useEffect(() => {
-    if (initialData) {
-      setName(initialData.name);
-      setType(initialData.type);
-      setMachineModel(initialData.machineModel);
-      setSerialNumber(initialData.serialNumber);
-      setLocation(initialData.location);
-      setManufacturingDate(initialData.manufacturingDate);
-      setImage(initialData.image);
-    }
-  }, [initialData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,7 +37,7 @@ const MachineForm: React.FC<MachineFormProps> = ({
       serialNumber,
       location,
       manufacturingDate,
-      image: image || null, 
+      image: image || initialData.image, 
     };
 
     await onSave(machineData);
@@ -67,7 +54,7 @@ const MachineForm: React.FC<MachineFormProps> = ({
       className="max-w-full md:max-w-3xl lg:max-w-4xl xl:max-w-5xl"
     >
       <div className="flex flex-col h-full p-4">
-        <h2 className="text-xl font-bold mb-2">{mode === 'create' ? 'Adicionar Máquina' : 'Editar Máquina'}</h2>
+        <h2 className="text-xl font-bold mb-2">Editar Máquina</h2>
         <Form onSubmit={handleSubmit} className="flex-1 flex flex-col gap-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -134,4 +121,4 @@ const MachineForm: React.FC<MachineFormProps> = ({
   );
 };
 
-export default MachineForm;
+export default MachineUpdate;
