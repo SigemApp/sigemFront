@@ -1,24 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import Modal from '../interfaceComponents/modal';
-import Form from '../interfaceComponents/form';
-import { SupplierItem } from '../../pages/suppliers/types';
+import Modal from '../interfaceComponents/modal'; 
+import Form from '../interfaceComponents/form'; 
+import { PartSupplier, ServiceSupplier } from '../../pages/suppliers/types'; 
 
 interface SupplierFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (supplier: SupplierItem) => Promise<void>;
-  initialData: SupplierItem | null;
+  onSave: (supplier: PartSupplier | ServiceSupplier) => Promise<void>; 
+  initialData: PartSupplier | ServiceSupplier | null;
   mode: 'create' | 'edit';
 }
 
-const SupplierForm: React.FC<SupplierFormProps> = ({
+const SupplierUpdateForm: React.FC<SupplierFormProps> = ({
   isOpen,
   onClose,
   onSave,
   initialData,
   mode,
 }) => {
-  // Definindo o estado inicial dos campos
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
   const [type, setType] = useState<'part' | 'service'>('part');
@@ -30,9 +29,8 @@ const SupplierForm: React.FC<SupplierFormProps> = ({
   const [serviceDescription, setServiceDescription] = useState('');
   const [notes, setNotes] = useState('');
 
-  // Carregando os dados iniciais quando o modal for aberto
   useEffect(() => {
-    if (mode === 'edit' && initialData) {
+    if (initialData) {
       setName(initialData.name);
       setCode(initialData.code);
       setType(initialData.type);
@@ -46,21 +44,18 @@ const SupplierForm: React.FC<SupplierFormProps> = ({
         setServiceDescription(initialData.serviceDescription);
       }
     }
-  }, [initialData, mode]);
+  }, [initialData]);
 
-  // Função de envio do formulário
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Verifica se o tipo é "service" e se a descrição do serviço foi preenchida
     if (type === 'service' && !serviceDescription) {
-      return; // Pode exibir um erro ou mensagem de validação aqui
+      return; 
     }
 
-    // Criação do objeto supplier com base no tipo
-    const supplier: SupplierItem = type === 'service'
+    const supplier: PartSupplier | ServiceSupplier = type === 'service'
       ? {
-          id: initialData?.id || Date.now(),
+          id: initialData?.id || Date.now().toString(),
           name,
           code,
           type,
@@ -73,7 +68,7 @@ const SupplierForm: React.FC<SupplierFormProps> = ({
           notes,
         }
       : {
-          id: initialData?.id || Date.now(),
+          id: initialData?.id || Date.now().toString(),
           name,
           code,
           type,
@@ -85,12 +80,10 @@ const SupplierForm: React.FC<SupplierFormProps> = ({
           notes,
         };
 
-    // Chama a função onSave passando os dados do fornecedor
     await onSave(supplier);
-    onClose(); // Fecha o modal após salvar
+    onClose();
   };
 
-  // Não exibe o modal se isOpen for falso
   if (!isOpen) return null;
 
   return (
@@ -101,9 +94,7 @@ const SupplierForm: React.FC<SupplierFormProps> = ({
       height="auto"
     >
       <div className="flex flex-col">
-        <h2 className="text-xl font-bold mb-3">
-          {mode === 'create' ? 'Adicionar Fornecedor' : 'Editar Fornecedor'}
-        </h2>
+        <h2 className="text-xl font-bold mb-3">{mode === 'create' ? 'Adicionar Fornecedor' : 'Editar Fornecedor'}</h2>
         <Form onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -214,4 +205,4 @@ const SupplierForm: React.FC<SupplierFormProps> = ({
   );
 };
 
-export default SupplierForm;
+export default SupplierUpdateForm;

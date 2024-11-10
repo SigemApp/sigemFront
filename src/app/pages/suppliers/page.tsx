@@ -20,9 +20,8 @@ const SuppliersPage: React.FC = () => {
   const [selectedSupplier, setSelectedSupplier] = useState<PartSupplier | ServiceSupplier | null>(null);
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
-  // States for the Detail Modal
-  const [detailOpen, setDetailOpen] = useState(false); // Estado para abrir o modal de detalhes
-  const [selectedDetail, setSelectedDetail] = useState<PartSupplier | ServiceSupplier | null>(null); // Fornecedor selecionado para o modal
+  const [detailOpen, setDetailOpen] = useState(false); 
+  const [selectedDetail, setSelectedDetail] = useState<PartSupplier | ServiceSupplier | null>(null); 
 
   useEffect(() => {
     handleSearch();
@@ -54,7 +53,7 @@ const SuppliersPage: React.FC = () => {
         notes: supplier.notes,
         ...(supplier.type === 'service' && { serviceDescription: (supplier as ServiceSupplier).serviceDescription }),
       };
-
+  
       if (formMode === 'create') {
         const response = await axios.post('http://localhost:3000/suppliers', supplyData, {
           headers: {
@@ -63,8 +62,9 @@ const SuppliersPage: React.FC = () => {
         });
         setSuppliers([...suppliers, response.data]);
         setNotification({ message: 'Fornecedor adicionado com sucesso!', type: 'success' });
-      } else if (selectedSupplier) {
-        await axios.put(`http://localhost:3000/suppliers/${selectedSupplier.id}`, supplyData, {
+      } else if (formMode === 'edit' && selectedSupplier) {
+      
+        await axios.put(`http://localhost:3000/suppliers/${selectedSupplier.code}`, supplyData, {
           headers: {
             'Content-Type': 'application/json',
           },
@@ -72,7 +72,7 @@ const SuppliersPage: React.FC = () => {
         setNotification({ message: 'Fornecedor atualizado com sucesso!', type: 'success' });
         handleSearch();
       }
-
+  
       setFormOpen(false);
       setSelectedSupplier(null);
     } catch (error) {
@@ -80,21 +80,22 @@ const SuppliersPage: React.FC = () => {
       setNotification({ message: 'Erro ao salvar fornecedor!', type: 'error' });
     }
   };
-
-  const handleDelete = async (id: string) => {
+  
+  const handleDelete = async (code: string) => {
     try {
-      await axios.delete(`http://localhost:3000/suppliers/${id}`);
-      setSuppliers(suppliers.filter(supplier => supplier.id !== id));
+      await axios.delete(`http://localhost:3000/suppliers/${code}`);
+      setSuppliers(suppliers.filter(supplier => supplier.code !== code));
       setNotification({ message: 'Fornecedor deletado com sucesso!', type: 'success' });
     } catch (error) {
       console.error('Erro ao deletar fornecedor:', error);
       setNotification({ message: 'Erro ao deletar fornecedor!', type: 'error' });
     }
   };
+  
 
   const handleDetail = (supplier: PartSupplier | ServiceSupplier) => {
     setSelectedDetail(supplier); 
-    setDetailOpen(true); // Abre o modal de detalhes
+    setDetailOpen(true); 
   };
 
   const handleEdit = (supplier: PartSupplier | ServiceSupplier) => {
@@ -118,14 +119,10 @@ const SuppliersPage: React.FC = () => {
     setNotification(null);
   };
 
-  const getInitialData = (): Omit<PartSupplier, 'id'> | Omit<ServiceSupplier, 'id'> | null => {
+  const getInitialData = (): PartSupplier | ServiceSupplier | null => {
     if (selectedSupplier) {
       const { id, ...rest } = selectedSupplier;
-      if (selectedSupplier.type === 'part') {
-        return rest as Omit<PartSupplier, 'id'>;
-      } else if (selectedSupplier.type === 'service') {
-        return rest as Omit<ServiceSupplier, 'id'>;
-      }
+      return { id, ...rest }; 
     }
     return null;
   };
@@ -155,7 +152,7 @@ const SuppliersPage: React.FC = () => {
             <td className="p-2">{supplier.contactEmail}</td>
             <td className="p-2 flex gap-2">
               <Button label="Editar" onClick={() => handleEdit(supplier)} className="mx-1" />
-              <Button label="Deletar" onClick={() => handleDelete(supplier.id)} className="mx-1" />
+              <Button label="Deletar" onClick={() => handleDelete(supplier.code)} className="mx-1" />
               <Button label="Detalhar" onClick={() => handleDetail(supplier)} className="mx-1" />
             </td>
           </>
@@ -180,7 +177,6 @@ const SuppliersPage: React.FC = () => {
         />
       </Modal>
 
-      {/* Modal de detalhes */}
       {detailOpen && selectedDetail && (
         <SupplierDetail 
           supplier={selectedDetail} 

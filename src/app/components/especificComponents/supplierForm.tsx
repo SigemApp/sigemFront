@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import Modal from '../interfaceComponents/modal'; 
 import Form from '../interfaceComponents/form'; 
-import { PartSupplier, ServiceSupplier, SupplierItem } from '../../pages/suppliers/types'; 
+import { PartSupplier, ServiceSupplier } from '../../pages/suppliers/types'; 
 
 interface SupplierFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (supplier: SupplierItem) => Promise<void>;
-  initialData: SupplierItem | null;
+  onSave: (supplier: PartSupplier | ServiceSupplier) => Promise<void>; 
+  initialData: PartSupplier | ServiceSupplier | null;
   mode: 'create' | 'edit';
 }
 
@@ -53,9 +53,9 @@ const SupplierForm: React.FC<SupplierFormProps> = ({
       return; // or show an error message
     }
 
-    const supplier: SupplierItem = type === 'service'
+    const supplier: PartSupplier | ServiceSupplier = type === 'service'
       ? {
-          id: initialData?.id || Date.now(),
+          id: initialData?.id || Date.now().toString(),
           name,
           code,
           type,
@@ -68,7 +68,7 @@ const SupplierForm: React.FC<SupplierFormProps> = ({
           notes,
         }
       : {
-          id: initialData?.id || Date.now(),
+          id: initialData?.id || Date.now().toString(),
           name,
           code,
           type,
