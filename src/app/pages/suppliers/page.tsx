@@ -7,78 +7,97 @@ import Modal from '../../components/interfaceComponents/modal';
 import SupplierForm from '../../components/especificComponents/supplierForm';
 import Button from '../../components/interfaceComponents/button';
 import Notification from '../../components/interfaceComponents/customNotification';
-import { SupplierItem, PartSupplier, ServiceSupplier } from './types';
+import SupplierDetail from '@/app/components/especificComponents/supplierDetail'; 
+import { PartSupplier, ServiceSupplier } from './types';
+import axios from 'axios';
 
 const SuppliersPage: React.FC = () => {
-  const [suppliers, setSuppliers] = useState<SupplierItem[]>([]);
+  const [suppliers, setSuppliers] = useState<(PartSupplier | ServiceSupplier)[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filteredSuppliers, setFilteredSuppliers] = useState<SupplierItem[]>([]);
+  const [filteredSuppliers, setFilteredSuppliers] = useState<(PartSupplier | ServiceSupplier)[]>([]);
   const [isFormOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
-  const [selectedSupplier, setSelectedSupplier] = useState<SupplierItem | null>(null);
+  const [selectedSupplier, setSelectedSupplier] = useState<PartSupplier | ServiceSupplier | null>(null);
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
-  useEffect(() => {
-    fetch('/api/suppliers')
-      .then(response => response.json())
-      .then(data => {
-        setSuppliers(data);
-        setFilteredSuppliers(data);
-      })
-      .catch(error => console.error('Error fetching suppliers:', error));
-  }, []);
+  // States for the Detail Modal
+  const [detailOpen, setDetailOpen] = useState(false); // Estado para abrir o modal de detalhes
+  const [selectedDetail, setSelectedDetail] = useState<PartSupplier | ServiceSupplier | null>(null); // Fornecedor selecionado para o modal
 
-  const handleSearch = () => {
-    setFilteredSuppliers(suppliers.filter(supplier =>
-      supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      supplier.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      supplier.type.toLowerCase().includes(searchTerm.toLowerCase())
-    ));
+  useEffect(() => {
+    handleSearch();
+  }, [searchTerm]);
+
+  const handleSearch = async () => {
+    try {
+      const response = await axios.get('http://localhost:3000/suppliers', {
+        params: { searchTerm }
+      });
+      setSuppliers(response.data);
+      setFilteredSuppliers(response.data);
+    } catch (error) {
+      console.error('Erro ao buscar fornecedores:', error);
+    }
   };
 
-  const handleSave = async (supplier: Omit<PartSupplier | ServiceSupplier, 'id'> & { id?: number }) => {
+  const handleSave = async (supplier: Omit<PartSupplier | ServiceSupplier, 'id'> & { id?: string }) => {
     try {
-      const url = formMode === 'create' ? '/api/suppliers' : `/api/suppliers/${selectedSupplier?.id}`;
-      const method = formMode === 'create' ? 'POST' : 'PUT';
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(supplier),
-      });
-      const result = await response.json();
+      const supplyData = {
+        name: supplier.name,
+        code: supplier.code,
+        type: supplier.type,
+        address: supplier.address,
+        contactName: supplier.contactName,
+        contactEmail: supplier.contactEmail,
+        contactPhone: supplier.contactPhone,
+        website: supplier.website,
+        notes: supplier.notes,
+        ...(supplier.type === 'service' && { serviceDescription: (supplier as ServiceSupplier).serviceDescription }),
+      };
 
       if (formMode === 'create') {
-        setSuppliers([...suppliers, result]);
+        const response = await axios.post('http://localhost:3000/suppliers', supplyData, {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        setSuppliers([...suppliers, response.data]);
         setNotification({ message: 'Fornecedor adicionado com sucesso!', type: 'success' });
-      } else {
-        setSuppliers(suppliers.map(s => s.id === result.id ? result : s));
+      } else if (selectedSupplier) {
+        await axios.put(`http://localhost:3000/suppliers/${selectedSupplier.id}`, supplyData, {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
         setNotification({ message: 'Fornecedor atualizado com sucesso!', type: 'success' });
+        handleSearch();
       }
 
       setFormOpen(false);
       setSelectedSupplier(null);
     } catch (error) {
-      console.error('Error saving supplier:', error);
+      console.error('Erro ao salvar fornecedor:', error);
       setNotification({ message: 'Erro ao salvar fornecedor!', type: 'error' });
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     try {
-      await fetch(`/api/suppliers/${id}`, {
-        method: 'DELETE',
-      });
+      await axios.delete(`http://localhost:3000/suppliers/${id}`);
       setSuppliers(suppliers.filter(supplier => supplier.id !== id));
       setNotification({ message: 'Fornecedor deletado com sucesso!', type: 'success' });
     } catch (error) {
-      console.error('Error deleting supplier:', error);
+      console.error('Erro ao deletar fornecedor:', error);
       setNotification({ message: 'Erro ao deletar fornecedor!', type: 'error' });
     }
   };
 
-  const handleEdit = (supplier: SupplierItem) => {
+  const handleDetail = (supplier: PartSupplier | ServiceSupplier) => {
+    setSelectedDetail(supplier); 
+    setDetailOpen(true); // Abre o modal de detalhes
+  };
+
+  const handleEdit = (supplier: PartSupplier | ServiceSupplier) => {
     setSelectedSupplier(supplier);
     setFormMode('edit');
     setFormOpen(true);
@@ -124,16 +143,20 @@ const SuppliersPage: React.FC = () => {
       </div>
 
       <Table 
-        columns={['Nome', 'Código', 'Tipo', 'Ações']}
+        columns={['Nome', 'Código', 'Tipo', 'Endereço', 'Contato', 'Email', 'Ações']}
         data={filteredSuppliers}
         renderRow={(supplier) => (
           <>
             <td className="p-2">{supplier.name}</td>
             <td className="p-2">{supplier.code}</td>
-            <td className="p-2">{supplier.type}</td>
-            <td className="p-2">
-              <Button label="Editar" onClick={() => handleEdit(supplier)} />
-              <Button label="Deletar" onClick={() => handleDelete(supplier.id)} />
+            <td className="p-2">{supplier.type === 'part' ? 'Peça' : 'Serviço'}</td>
+            <td className="p-2">{supplier.address}</td>
+            <td className="p-2">{supplier.contactName}</td>
+            <td className="p-2">{supplier.contactEmail}</td>
+            <td className="p-2 flex gap-2">
+              <Button label="Editar" onClick={() => handleEdit(supplier)} className="mx-1" />
+              <Button label="Deletar" onClick={() => handleDelete(supplier.id)} className="mx-1" />
+              <Button label="Detalhar" onClick={() => handleDetail(supplier)} className="mx-1" />
             </td>
           </>
         )}
@@ -156,6 +179,14 @@ const SuppliersPage: React.FC = () => {
           mode={formMode}
         />
       </Modal>
+
+      {/* Modal de detalhes */}
+      {detailOpen && selectedDetail && (
+        <SupplierDetail 
+          supplier={selectedDetail} 
+          onClose={() => setDetailOpen(false)} 
+        />
+      )}
     </div>
   );
 };
