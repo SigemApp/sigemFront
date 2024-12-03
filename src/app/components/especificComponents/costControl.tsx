@@ -31,15 +31,19 @@ const CostControlModal: React.FC<CostControlModalProps> = ({ isOpen, onClose, on
   const handleSaveItem = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (editItem) {
+      let updatedItems: StockItem[];
+  
       if (editItem.id === undefined) {
-        setItems([...items, editItem]);
+        updatedItems = [...items, editItem];  // Adiciona o item novo
       } else {
-        setItems(items.map(item => item.id === editItem.id ? editItem : item));
+        updatedItems = items.map(item => item.id === editItem.id ? editItem : item);  // Atualiza o item
       }
-      onSave(items);
-      setEditItem(null);
+  
+      setItems(updatedItems); // Atualiza o estado com os itens
+      onSave(updatedItems); // Chama o onSave com os itens atualizados
+      setEditItem(null);  // Limpa a edição
     }
-  };
+  };  
 
   const handleCancelEdit = () => {
     setEditItem(null);

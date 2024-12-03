@@ -1,183 +1,208 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import Table from '../../components/interfaceComponents/table';
 import SearchBar from '../../components/interfaceComponents/searchBar';
 import Modal from '../../components/interfaceComponents/modal';
 import MaintenanceStatusManager from '../../components/especificComponents/maintenanceStatusManager';
-import CostControl from '../../components/especificComponents/costControl'; 
-import ReportsGenerator from '../../utils/reportsGenerator';
+import CostControlModal from '../../components/especificComponents/costControl';
 import CustomNotification from '../../components/interfaceComponents/customNotification';
 import { Maintenance } from './types';
-import { StockItem } from '../stock/types'; 
+import { StockItem } from '../stock/types';
+import Button from '../../components/interfaceComponents/button';
 
 const MaintenancePage: React.FC = () => {
   const [maintenances, setMaintenances] = useState<Maintenance[]>([]);
-  const [stockItems, setStockItems] = useState<StockItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredMaintenances, setFilteredMaintenances] = useState<Maintenance[]>([]);
-  const [modalType, setModalType] = useState<string | null>(null);
+  const [isFormOpen, setFormOpen] = useState(false);
+  const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
   const [selectedMaintenance, setSelectedMaintenance] = useState<Maintenance | null>(null);
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [isDetailOpen, setDetailOpen] = useState(false);
 
-  const handleSearch = () => {
-    setFilteredMaintenances(maintenances.filter(maintenance =>
-      maintenance.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      maintenance.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      maintenance.responsibleTeam.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (maintenance.machine?.toLowerCase().includes(searchTerm.toLowerCase()) || '')
-    ));
-  };
+  useEffect(() => {
+    handleSearch();
+  }, [searchTerm]);
 
-  const handleOpenForm = () => setModalType('form');
-  
-  const handleOpenStatusManager = (maintenance: Maintenance) => {
-    setSelectedMaintenance(maintenance);
-    setModalType('statusManager');
-  };
-  
-  const handleOpenCostControl = (maintenance: Maintenance) => {
-    setSelectedMaintenance(maintenance);
-    setModalType('costControl');
-  };
-  
-  const handleOpenReportsGenerator = () => setModalType('reportsGenerator');
-
-  const handleSaveMaintenance = async (maintenance: any) => {
+  const handleSearch = async () => {
     try {
-      if (maintenance.id) {
-        setMaintenances(maintenances.map(m => m.id === maintenance.id ? maintenance : m));
-        setNotification({ message: 'Manutenção atualizada com sucesso!', type: 'success' });
-      } else {
-        const newMaintenance = { ...maintenance, id: (maintenances.length + 1).toString() }; 
-        setMaintenances([...maintenances, newMaintenance]);
-        setNotification({ message: 'Manutenção cadastrada com sucesso!', type: 'success' });
-      }
+      const response = await axios.get('http://localhost:3000/maintenance', {
+        params: { searchTerm }
+      });
+      setMaintenances(response.data);  // Ajuste aqui caso a resposta seja um array direto
+      setFilteredMaintenances(response.data);  // Adicionando o filtro caso necessário
     } catch (error) {
-      console.error('Error saving maintenance:', error);
+      console.error('Erro ao buscar manutenções:', error);
+      setNotification({ message: 'Erro ao buscar manutenções!', type: 'error' });
+    }
+  };
+
+  const handleSave = async (maintenance: Omit<Maintenance, "id"> & { files: File[] | null }) => {
+    try {
+      const maintenanceData = {
+        orderNumber: maintenance.orderNumber,
+        machine: maintenance.machine,
+        openingDate: maintenance.openingDate,
+        completionDeadline: maintenance.completionDeadline,
+        responsibleTeam: maintenance.responsibleTeam,
+        status: maintenance.status,
+        files: maintenance.files ? maintenance.files : null,
+        comments: maintenance.comments,
+        stockItems: maintenance.stockItems || [],  // Adicionando 'stockItems'
+        services: maintenance.services || []       // Adicionando 'services'
+      };
+  
+      if (formMode === 'create') {
+        const response = await axios.post('http://localhost:3000/maintenance', maintenanceData, {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        setMaintenances([...maintenances, response.data]);
+        setNotification({ message: 'Manutenção adicionada com sucesso!', type: 'success' });
+      } else if (selectedMaintenance) {
+        const updatedMaintenance = { ...maintenanceData, id: selectedMaintenance.id, maintenanceHistory: selectedMaintenance.maintenanceHistory };
+        await axios.put(`http://localhost:3000/maintenance/${selectedMaintenance.id}`, updatedMaintenance, {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        setMaintenances(maintenances.map(m => m.id === selectedMaintenance.id ? updatedMaintenance : m));
+        setNotification({ message: 'Manutenção atualizada com sucesso!', type: 'success' });
+      }
+  
+      setFormOpen(false);
+      setSelectedMaintenance(null);
+      handleSearch();
+  
+    } catch (error) {
+      console.error('Erro ao salvar manutenção:', error);
       setNotification({ message: 'Erro ao salvar manutenção!', type: 'error' });
     }
-    setModalType(null);
-  };
+  };  
 
-  const handleUpdateStatus = async (status: string, comments: string) => {
-    if (selectedMaintenance) {
-      try {
-        setMaintenances(maintenances.map(m => m.id === selectedMaintenance.id ? { ...m, status } : m));
-        setNotification({ message: 'Status atualizado com sucesso!', type: 'success' });
-      } catch (error) {
-        console.error('Error updating status:', error);
-        setNotification({ message: 'Erro ao atualizar status!', type: 'error' });
-      }
-      setModalType(null);
-    }
-  };
-
-  const handleSaveCosts = async (costs: any) => {
+  const handleDelete = async (id: string) => {
     try {
-      setNotification({ message: 'Custos registrados com sucesso!', type: 'success' });
+      await axios.delete(`http://localhost:3000/maintenance/${id}`);
+      setMaintenances(maintenances.filter(maintenance => maintenance.id !== id));
+      setNotification({ message: 'Manutenção excluída com sucesso!', type: 'success' });
+      handleSearch();
     } catch (error) {
-      console.error('Error saving costs:', error);
-      setNotification({ message: 'Erro ao registrar custos!', type: 'error' });
+      console.error('Erro ao excluir manutenção:', error);
+      setNotification({ message: 'Erro ao excluir manutenção!', type: 'error' });
     }
-    setModalType(null);
   };
 
-  const handleGenerateReport = async (criteria: any) => {
+  const handleDetail = async (maintenance: Maintenance) => {
     try {
-      setNotification({ message: 'Relatório gerado com sucesso!', type: 'success' });
+      const response = await axios.get(`http://localhost:3000/maintenance/${maintenance.id}`);
+      setSelectedMaintenance(response.data);
+      setDetailOpen(true);
     } catch (error) {
-      console.error('Error generating report:', error);
-      setNotification({ message: 'Erro ao gerar relatório!', type: 'error' });
+      console.error('Erro ao buscar detalhes da manutenção:', error);
     }
-    setModalType(null);
   };
-
-  const handleNotificationClose = () => setNotification(null);
 
   const handleUpdate = (maintenance: Maintenance) => {
     setSelectedMaintenance(maintenance);
-    setModalType('form');
+    setFormMode('edit');
+    setFormOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setFormOpen(false);
+    setSelectedMaintenance(null);
+  };
+
+  const handleNotificationClose = () => {
+    setNotification(null);
+  };
+
+  const handleCloseDetailModal = () => {
+    setDetailOpen(false);
+    setSelectedMaintenance(null);
   };
 
   return (
-    <div className="p-4">
-      {notification && (
-        <CustomNotification
-          message={notification.message}
-          type={notification.type}
-          onClose={handleNotificationClose}
-          className="mb-4"
-        />
-      )}
-
-      <h1 className="text-3xl font-bold mb-6">Manutenções</h1>
-
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex space-x-2">
-          <button
-            onClick={handleOpenForm}
-            className="px-4 py-2 bg-blue-950 text-white rounded-md"
-          >
-            Cadastrar Manutenção
-          </button>
-          <button
-            onClick={handleOpenReportsGenerator}
-            className="px-4 py-2 bg-blue-950 text-white rounded-md"
-          >
-            Gerar Relatórios
-          </button>
-        </div>
-        <SearchBar 
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          onSubmit={handleSearch}
-          placeholder="Procurar Manutenções"
-        />
+    <div>
+      <div>
+        <h1 className="text-3xl font-bold m-4">Manutenções</h1>
       </div>
+      <div className="p-6">
+        <div className="flex justify-between items-center mb-4">
+          <Button label="Adicionar Manutenção" onClick={() => setFormOpen(true)} />
+          <SearchBar
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onSubmit={handleSearch}
+            placeholder="Procurar Manutenções"
+          />
+        </div>
 
-      <Table 
-        columns={['OS', 'Máquina', 'Data de Abertura', 'Prazo de Conclusão', 'Equipe Responsável', 'Status', 'Ações']}
-        data={filteredMaintenances}
-        renderRow={(maintenance) => (
-          <>
-            <td className="p-2">{maintenance.orderNumber}</td>
-            <td className="p-2">{maintenance.machine}</td> 
-            <td className="p-2">{maintenance.openingDate}</td>
-            <td className="p-2">{maintenance.completionDeadline}</td>
-            <td className="p-2">{maintenance.responsibleTeam}</td>
-            <td className="p-2">{maintenance.status}</td>
-            <td className="p-2">
-              <button
-                onClick={() => handleOpenStatusManager(maintenance)}
-                className="px-4 py-2 bg-blue-950 text-white rounded-md mr-2"
-              >
-                Gerenciar Status
-              </button>
-              <button
-                onClick={() => handleOpenCostControl(maintenance)}
-                className="px-4 py-2 bg-blue-950 text-white rounded-md"
-              >
-                Gerenciar Custos
-              </button>
-              <button
-                onClick={() => handleUpdate(maintenance)} 
-                className="px-4 py-2 bg-blue-950 text-white rounded-md ml-2"
-              >
-                Editar
-              </button>
-            </td>
-          </>
+        <Table
+          columns={['Ordem', 'Máquina', 'Data de Abertura', 'Prazo de Conclusão', 'Equipe Responsável', 'Status', 'Ações']}
+          data={filteredMaintenances}
+          renderRow={(maintenance) => (
+            <>
+              <td className="p-2">{maintenance.orderNumber}</td>
+              <td className="p-2">{maintenance.machineId}</td>
+              <td className="p-2">{maintenance.openingDate}</td>
+              <td className="p-2">{maintenance.completionDeadline}</td>
+              <td className="p-2">{maintenance.responsibleTeam}</td>
+              <td className="p-2">{maintenance.status}</td>
+              <td className="p-2">
+                <Button className='mr-4' label="Editar" onClick={() => handleUpdate(maintenance)} />
+                <Button className='mr-4' label="Deletar" onClick={() => handleDelete(maintenance.id)} />
+                <Button label="Detalhar" onClick={() => handleDetail(maintenance)} />
+              </td>
+            </>
+          )}
+        />
+
+        {notification && (
+          <CustomNotification
+            message={notification.message}
+            type={notification.type}
+            onClose={handleNotificationClose}
+          />
         )}
-      />
-      {modalType === 'reportsGenerator' && (
-        <Modal isOpen={modalType === 'reportsGenerator'} onClose={() => setModalType(null)}>
-          <ReportsGenerator 
-            onGenerate={handleGenerateReport} 
-            onClose={() => setModalType(null)}
+
+        <Modal isOpen={isFormOpen} onClose={handleCloseModal}>
+          <MaintenanceStatusManager
+            isOpen={isFormOpen}
+            onClose={handleCloseModal}
+            onSave={handleSave}
+            initialData={selectedMaintenance ? {
+              orderNumber: selectedMaintenance.orderNumber,
+              machine: selectedMaintenance.machine,
+              openingDate: selectedMaintenance.openingDate,
+              completionDeadline: selectedMaintenance.completionDeadline,
+              responsibleTeam: selectedMaintenance.responsibleTeam,
+              status: selectedMaintenance.status,
+              description: selectedMaintenance.description || '',
+              priority: selectedMaintenance.priority || '',
+              maintenanceType: selectedMaintenance.maintenanceType || '',
+              files: null,
+              comments: selectedMaintenance.comments || '',
+              stockItems: selectedMaintenance.stockItems || [],
+              services: selectedMaintenance.services || []
+            } : null}
+            mode={formMode}
           />
         </Modal>
-      )}
+
+        {selectedMaintenance && (
+          <Modal isOpen={isDetailOpen} onClose={handleCloseDetailModal}>
+             <CostControlModal
+                maintenance={selectedMaintenance}
+                onClose={handleCloseDetailModal}
+                onSave={handleSaveCostControl}  // Passando a função de salvar, se necessário
+             />
+          </Modal>
+        )}
+      </div>
     </div>
   );
 };

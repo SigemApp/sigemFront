@@ -122,76 +122,82 @@ const handleDelete = async (id: string) => {
   };
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-4">
-        <Button label="Adicionar Máquina" onClick={() => setFormOpen(true)} />
-        <SearchBar
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          onSubmit={handleSearch}
-          placeholder="Procurar Máquinas"
+    <div>
+      <div>
+        <h1 className="text-3xl font-bold m-4">Maquinas</h1>
+      </div>
+      <div className="p-6">
+        <div className="flex justify-between items-center mb-4">
+          <Button label="Adicionar Máquina" onClick={() => setFormOpen(true)} />
+          <SearchBar
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onSubmit={handleSearch}
+            placeholder="Procurar Máquinas"
+          />
+        </div>
+
+        <Table
+          columns={['Nome', 'Tipo', 'Modelo', 'Ações']}
+          data={filteredMachines}
+          renderRow={(machine) => (
+            <>
+              <td className="p-2">{machine.name}</td>
+              <td className="p-2">{machine.type}</td>
+              <td className="p-2">{machine.machineModel}</td>
+              <td className="p-2">
+                <Button className='mr-4' label="Editar" onClick={() => handleUpdate(machine)} /> 
+                <Button className='mr-4' label="Deletar" onClick={() => handleDelete(machine.id)} />
+                <Button label='Detalhar' onClick={() => handleDetail(machine)} />
+              </td>
+            </>
+          )}
         />
+
+        {notification && (
+          <Notification
+            message={notification.message}
+            type={notification.type}
+            onClose={handleNotificationClose}
+          />
+        )}
+
+        <Modal isOpen={isFormOpen} onClose={handleCloseModal}>
+          <MachineForm
+            isOpen={isFormOpen}
+            onClose={handleCloseModal}
+            onSave={handleSave}
+            initialData={selectedMachine ? {
+              name: selectedMachine.name,
+              type: selectedMachine.type,
+              machineModel: selectedMachine.machineModel, 
+              manufacturingDate: selectedMachine.manufacturingDate,
+              serialNumber: selectedMachine.serialNumber,
+              location: selectedMachine.location,
+              image: null,
+            } : null}
+            mode={formMode}
+          />
+        </Modal>
+
+        {selectedMachine && (
+        <Modal isOpen={isDetailOpen} onClose={handleCloseDetailModal}>
+          <MachineDetail
+            machine={{
+              name: selectedMachine.name,
+              type: selectedMachine.type,
+              model: selectedMachine.machineModel,  
+              manufacturingDate: selectedMachine.manufacturingDate,
+              serialNumber: selectedMachine.serialNumber,
+              location: selectedMachine.location,
+              maintenanceHistory: selectedMachine.maintenanceHistory || [],  
+            }}
+            onClose={handleCloseDetailModal}
+          />
+        </Modal>
+      )}
       </div>
 
-      <Table
-        columns={['Nome', 'Tipo', 'Modelo', 'Ações']}
-        data={filteredMachines}
-        renderRow={(machine) => (
-          <>
-            <td className="p-2">{machine.name}</td>
-            <td className="p-2">{machine.type}</td>
-            <td className="p-2">{machine.machineModel}</td>
-            <td className="p-2">
-              <Button className='mr-4' label="Editar" onClick={() => handleUpdate(machine)} /> 
-              <Button className='mr-4' label="Deletar" onClick={() => handleDelete(machine.id)} />
-              <Button label='Detalhar' onClick={() => handleDetail(machine)} />
-            </td>
-          </>
-        )}
-      />
-
-      {notification && (
-        <Notification
-          message={notification.message}
-          type={notification.type}
-          onClose={handleNotificationClose}
-        />
-      )}
-
-      <Modal isOpen={isFormOpen} onClose={handleCloseModal}>
-        <MachineForm
-          isOpen={isFormOpen}
-          onClose={handleCloseModal}
-          onSave={handleSave}
-          initialData={selectedMachine ? {
-            name: selectedMachine.name,
-            type: selectedMachine.type,
-            machineModel: selectedMachine.machineModel, 
-            manufacturingDate: selectedMachine.manufacturingDate,
-            serialNumber: selectedMachine.serialNumber,
-            location: selectedMachine.location,
-            image: null,
-          } : null}
-          mode={formMode}
-        />
-      </Modal>
-
-      {selectedMachine && (
-      <Modal isOpen={isDetailOpen} onClose={handleCloseDetailModal}>
-        <MachineDetail
-          machine={{
-            name: selectedMachine.name,
-            type: selectedMachine.type,
-            model: selectedMachine.machineModel,  
-            manufacturingDate: selectedMachine.manufacturingDate,
-            serialNumber: selectedMachine.serialNumber,
-            location: selectedMachine.location,
-            maintenanceHistory: selectedMachine.maintenanceHistory || [],  
-          }}
-          onClose={handleCloseDetailModal}
-        />
-      </Modal>
-    )}
     </div>
   );
 };

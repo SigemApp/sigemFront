@@ -5,8 +5,8 @@ export interface StockItem {
     supplier: string;
     quantity: number;
     unitPrice: number;
-    
   }
+  
   
   export interface StockMovement {
     id: number;

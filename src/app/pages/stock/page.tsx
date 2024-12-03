@@ -117,6 +117,9 @@ const StockPage: React.FC = () => {
   };
 
   return (
+    <div>
+    <h1 className="text-3xl font-bold m-4">Estoque de peças</h1>
+
     <div className="p-6">
       <div className="flex justify-between items-center mb-4">
         <Button label="Adicionar Item" onClick={handleCreate} />
@@ -191,6 +194,7 @@ const StockPage: React.FC = () => {
           </footer>
         </div>
       </Modal>
+    </div>
     </div>
   );
 };
