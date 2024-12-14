@@ -4,14 +4,12 @@ import React, { useState, useEffect } from 'react';
 import Table from '../../components/interfaceComponents/table';
 import SearchBar from '../../components/interfaceComponents/searchBar';
 import Modal from '../../components/interfaceComponents/modal';
-import MaintenanceForm from '../../components/especificComponents/maintenenceForm';
 import MaintenanceStatusManager from '../../components/especificComponents/maintenanceStatusManager';
 import CostControl from '../../components/especificComponents/costControl'; 
 import ReportsGenerator from '../../utils/reportsGenerator';
 import CustomNotification from '../../components/interfaceComponents/customNotification';
 import { Maintenance } from './types';
 import { StockItem } from '../stock/types'; 
-import { mockMaintenances, mockStockItems, mockMachines, mockServices } from './mockData'; 
 
 const MaintenancePage: React.FC = () => {
   const [maintenances, setMaintenances] = useState<Maintenance[]>([]);
@@ -21,12 +19,6 @@ const MaintenancePage: React.FC = () => {
   const [modalType, setModalType] = useState<string | null>(null);
   const [selectedMaintenance, setSelectedMaintenance] = useState<Maintenance | null>(null);
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
-
-  useEffect(() => {
-    setMaintenances(mockMaintenances);
-    setFilteredMaintenances(mockMaintenances);
-    setStockItems(mockStockItems);
-  }, []);
 
   const handleSearch = () => {
     setFilteredMaintenances(maintenances.filter(maintenance =>
@@ -178,37 +170,6 @@ const MaintenancePage: React.FC = () => {
           </>
         )}
       />
-
-      {modalType === 'form' && (
-        <Modal isOpen={modalType === 'form'} onClose={() => setModalType(null)}>
-          <MaintenanceForm 
-            onSave={handleSaveMaintenance}
-            onClose={() => setModalType(null)}
-            stockItems={stockItems} 
-            machines={mockMachines} 
-            services={mockServices} J
-          />
-        </Modal>
-      )}
-      {modalType === 'statusManager' && selectedMaintenance && (
-        <Modal isOpen={modalType === 'statusManager'} onClose={() => setModalType(null)}>
-          <MaintenanceStatusManager
-            maintenance={selectedMaintenance}
-            onUpdateStatus={handleUpdateStatus}
-            onClose={() => setModalType(null)}
-          />
-        </Modal>
-      )}
-      {modalType === 'costControl' && selectedMaintenance && (
-        <Modal isOpen={modalType === 'costControl'} onClose={() => setModalType(null)}>
-          <CostControl
-            isOpen={modalType === 'costControl'}
-            maintenance={selectedMaintenance}
-            onSaveCosts={handleSaveCosts}
-            onClose={() => setModalType(null)}
-          />
-        </Modal>
-      )}
       {modalType === 'reportsGenerator' && (
         <Modal isOpen={modalType === 'reportsGenerator'} onClose={() => setModalType(null)}>
           <ReportsGenerator 
